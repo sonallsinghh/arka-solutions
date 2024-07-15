@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polygon Drawer</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        #canvas-container {
+            position: relative;
+        }
+
+        #polygonCanvas {
+            border: 1px solid #000;
+            background-color: #ffffff;
+        }
+
+        .button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="polygonCanvas"></canvas>
+    </div>
+    <button id="completeButton" class="button">Complete Polygon</button>
+    <button id="copyButton" class="button">Copy Polygon</button>
+    <script>
+        const canvas = document.getElementById('polygonCanvas');
+        const completeButton = document.getElementById('completeButton');
+        const copyButton = document.getElementById('copyButton');
+        const ctx = canvas.getContext('2d');
+        const vertices = [];
+
+        canvas.width = 800;
+        canvas.height = 600;
+
+        let isPolygonCompleted = false;
+        let isCopying = false;
+        let copiedVertices = [];
+        let copiedPolygonOffset = { x: 0, y: 0 };
+
+        // Function to draw grid lines on the canvas
+        function drawGrid(ctx, gridSize) {
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+
+            // Draw vertical lines
+            for (let x = 0; x < ctx.canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, ctx.canvas.height);
+                ctx.stroke();
+            }
+
+            // Draw horizontal lines
+            for (let y = 0; y < ctx.canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(ctx.canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        // Draw initial grid lines
+        drawGrid(ctx, 20);
+
+        canvas.addEventListener('click', (event) => {
+            if (isPolygonCompleted && isCopying) {
+                // Place the copied polygon
+                copiedPolygonOffset = {
+                    x: event.clientX - canvas.getBoundingClientRect().left,
+                    y: event.clientY - canvas.getBoundingClientRect().top
+                };
+                placeCopiedPolygon();
+                return;
+            }
+
+            if (isPolygonCompleted) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            vertices.push({ x, y });
+
+            drawVertex(x, y);
+            if (vertices.length > 1) {
+                drawEdge(vertices[vertices.length - 2], vertices[vertices.length - 1]);
+            }
+        });
+
+        completeButton.addEventListener('click', () => {
+            if (vertices.length < 3) return; // A polygon needs at least 3 vertices
+            isPolygonCompleted = true;
+
+            // Close the polygon
+            drawEdge(vertices[vertices.length - 1], vertices[0]);
+
+            // Fill the polygon with a distinct color
+            fillPolygon(vertices, 'rgba(0, 128, 255, 0.5)');
+
+            // Draw distinct edge lines
+            drawPolygonEdges(vertices, '#FF0000');
+        });
+
+        copyButton.addEventListener('click', () => {
+            if (!isPolygonCompleted) return; // Do nothing if no polygon is created
+            isCopying = true;
+            copiedVertices = [...vertices];
+            canvas.addEventListener('mousemove', moveCopiedPolygon);
+        });
+
+        function drawVertex(x, y) {
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawEdge(start, end) {
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+        }
+
+        function fillPolygon(vertices, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(vertices[0].x, vertices[0].y);
+            vertices.forEach(vertex => ctx.lineTo(vertex.x, vertex.y));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawPolygonEdges(vertices, color) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(vertices[0].x, vertices[0].y);
+            vertices.forEach(vertex => ctx.lineTo(vertex.x, vertex.y));
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        function moveCopiedPolygon(event) {
+            if (!isCopying) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Redraw grid lines
+            drawGrid(ctx, 20);
+
+            // Redraw original polygon
+            if (isPolygonCompleted) {
+                fillPolygon(vertices, 'rgba(0, 128, 255, 0.5)');
+                drawPolygonEdges(vertices, '#FF0000');
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            const offsetVertices = copiedVertices.map(vertex => ({
+                x: vertex.x + mouseX - copiedPolygonOffset.x,
+                y: vertex.y + mouseY - copiedPolygonOffset.y
+            }));
+
+            fillPolygon(offsetVertices, 'rgba(0, 255, 128, 0.5)');
+            drawPolygonEdges(offsetVertices, '#00FF00');
+        }
+
+        function placeCopiedPolygon() {
+            canvas.removeEventListener('mousemove', moveCopiedPolygon);
+            isCopying = false;
+        }
+    </script>
+</body>
+</html>
