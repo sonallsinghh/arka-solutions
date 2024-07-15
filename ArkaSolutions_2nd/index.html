@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polygon Drawer with Grid</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        #canvas-container {
+            position: relative;
+        }
+
+        #polygonCanvas {
+            border: 1px solid #000;
+            background-color: #ffffff;
+        }
+
+        #completeButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #completeButton:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="polygonCanvas"></canvas>
+    </div>
+    <button id="completeButton">Complete Polygon</button>
+    <script>
+        class Polygon {
+            constructor(ctx) {
+                this.ctx = ctx;
+                this.vertices = [];
+                this.isCompleted = false;
+            }
+
+            addVertex(x, y) {
+                if (this.isCompleted) return;
+                this.vertices.push({ x, y });
+                this.drawVertex(x, y);
+                if (this.vertices.length > 1) {
+                    this.drawEdge(this.vertices[this.vertices.length - 2], this.vertices[this.vertices.length - 1]);
+                }
+            }
+
+            completePolygon() {
+                if (this.vertices.length < 3 || this.isCompleted) return;
+                this.isCompleted = true;
+                this.drawEdge(this.vertices[this.vertices.length - 1], this.vertices[0]);
+                this.fillPolygon('rgba(0, 128, 255, 0.5)');
+                this.drawPolygonEdges('#FF0000');
+            }
+
+            drawVertex(x, y) {
+                this.ctx.fillStyle = '#000';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, 5, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+
+            drawEdge(start, end) {
+                this.ctx.strokeStyle = '#000';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(start.x, start.y);
+                this.ctx.lineTo(end.x, end.y);
+                this.ctx.stroke();
+            }
+
+            fillPolygon(color) {
+                this.ctx.fillStyle = color;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.vertices[0].x, this.vertices[0].y);
+                this.vertices.forEach(vertex => this.ctx.lineTo(vertex.x, vertex.y));
+                this.ctx.closePath();
+                this.ctx.fill();
+            }
+
+            drawPolygonEdges(color) {
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.vertices[0].x, this.vertices[0].y);
+                this.vertices.forEach(vertex => this.ctx.lineTo(vertex.x, vertex.y));
+                this.ctx.closePath();
+                this.ctx.stroke();
+            }
+        }
+
+        // Draw grid lines on the canvas
+        function drawGrid(ctx, gridSize) {
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+
+            // Draw vertical lines
+            for (let x = 0; x < ctx.canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, ctx.canvas.height);
+                ctx.stroke();
+            }
+
+            // Draw horizontal lines
+            for (let y = 0; y < ctx.canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(ctx.canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        // Initialize canvas and polygon drawing
+        const canvas = document.getElementById('polygonCanvas');
+        const completeButton = document.getElementById('completeButton');
+        const ctx = canvas.getContext('2d');
+        const polygon = new Polygon(ctx);
+
+        canvas.width = 800;
+        canvas.height = 600;
+
+        // Draw initial grid lines
+        drawGrid(ctx, 20);
+
+        // Event listeners for adding vertices and completing polygon
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            polygon.addVertex(x, y);
+        });
+
+        completeButton.addEventListener('click', () => {
+            polygon.completePolygon();
+        });
+    </script>
+</body>
+</html>
